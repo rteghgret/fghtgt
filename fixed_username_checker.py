@@ -1,6 +1,8 @@
 import requests
 import sys
 import os
+import random
+import string
 from queue import Queue
 
 API = "https://discord.com/api/v9/unique-username/username-attempt-unauthed"
@@ -8,9 +10,11 @@ WEBHOOK = "https://discord.com/api/webhooks/1508590349713408231/CIljNz9hoywwrkH9
 
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
 GITHUB_REPOSITORY = os.getenv("GITHUB_REPOSITORY")
+GITHUB_WORKFLOW = "checker.yml"   # Hardcoded - do not change unless filename changes
 
-# HARD CODE THE FILENAME HERE (most reliable)
-GITHUB_WORKFLOW = "checker.yml"   # ←←← This is the important line
+# Random username settings
+USERNAME_LENGTH = 4
+NUM_USERNAMES = 10000   # How many to generate per run (adjust as needed)
 
 session = requests.Session()
 session.headers.update({
@@ -49,14 +53,18 @@ def trigger_new_workflow_run():
         log(f"[GITHUB] Error: {e}")
         return False
 
-log("[INIT] Username checker started")
+log("[INIT] Random 4-char username checker started")
 
+# Character set: letters + digits + underscore + period
+chars = string.ascii_lowercase + string.digits + "_."
+
+# Generate random usernames
 names_queue = Queue()
-with open("names.txt", "r", encoding="utf-8") as f:
-    for line in f:
-        name = line.strip()
-        if name:
-            names_queue.put(name)
+for _ in range(NUM_USERNAMES):
+    username = ''.join(random.choice(chars) for _ in range(USERNAME_LENGTH))
+    names_queue.put(username)
+
+log(f"[GENERATED] {NUM_USERNAMES} random 4-character usernames")
 
 def check(name):
     try:
@@ -82,6 +90,7 @@ def check(name):
     except Exception as e:
         log(f"[ERROR] {e}")
 
+# Run the checker
 while not names_queue.empty():
     name = names_queue.get()
     check(name)
